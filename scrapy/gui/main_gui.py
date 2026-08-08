@@ -301,7 +301,8 @@ class AtoZScrapyWindowsApp:
         btn_analyze = ttk.Button(frame, text="🔍 Analyze Current Scraper Results", command=self._run_ai_insights_analysis)
         btn_analyze.pack(anchor="w", pady=10)
 
-        self.insights_text = scrolledtext.ScrolledText(frame, height=18, bg="#11111b", fg="#a6e3a1", font=("Consolas", 9.5))
+        self.insights_text = scrolledtext.ScrolledText(frame, height=18, bg="#11111b", fg="#a6e3a1", font=("Consolas", 9))
+
         self.insights_text.pack(fill="both", expand=True, pady=5)
         self.insights_text.insert("end", "[AI] Click 'Analyze Current Scraper Results' above to generate analysis.\n")
 
