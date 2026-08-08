@@ -5,8 +5,9 @@ a = Analysis(
     ['scrapy\\gui\\main_gui.py'],
     pathex=[],
     binaries=[],
-    datas=[('scrapy', 'scrapy')],
-    hiddenimports=[],
+    datas=[('scrapy', 'scrapy'), ('_tcl_data', '_tcl_data'), ('_tk_data', '_tk_data')],
+    hiddenimports=['scrapy.gui.version', 'scrapy.gui.updater', 'scrapy.gui.main_gui', 'scrapy.pipelines.gui_pipeline', 'scrapy.spiders.demo_quotes_spider'],
+
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -35,4 +36,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    version='version_info.txt',
 )

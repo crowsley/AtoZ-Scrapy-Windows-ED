@@ -13,7 +13,14 @@ import tempfile
 import urllib.request
 import urllib.error
 from typing import Dict, Any, Tuple, Optional
-from .version import APP_VERSION
+try:
+    from .version import APP_VERSION
+except (ImportError, ValueError):
+    try:
+        from version import APP_VERSION
+    except Exception:
+        from scrapy.gui.version import APP_VERSION
+
 
 
 class GitHubUpdater:
