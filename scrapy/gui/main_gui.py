@@ -4,7 +4,8 @@ AtoZ Scrapy Windows ED 0.0.1 - Main Windows Desktop GUI Application
 Provides a native Windows desktop app for controlling spiders, configuring
 proxies and Playwright, streaming live scraped data in real-time, scraping limits controls,
 expanded TXT/CSV/PDF/JSON exporters, full Scrapy Core features (AutoThrottle,
-HTTPCache, Retries, User-Agent, Cookies, Robots.txt), and AI Scraper Insights.
+HTTPCache, Retries, User-Agent, Cookies, Robots.txt), Universal Multi-Site Scraper,
+Keyword & Phrase Filtering, and AI Spider Generator.
 """
 
 import sys
@@ -24,17 +25,19 @@ from typing import Optional
 try:
     from scrapy.gui.version import APP_NAME, APP_VERSION, FULL_APP_TITLE
     from scrapy.gui.updater import GitHubUpdater
+    from scrapy.gui.spider_generator import save_generated_spider
 except (ImportError, ValueError):
     from .version import APP_NAME, APP_VERSION, FULL_APP_TITLE
     from .updater import GitHubUpdater
+    from .spider_generator import save_generated_spider
 
 
 class AtoZScrapyWindowsApp:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title(FULL_APP_TITLE)
-        self.root.geometry("1060x740")
-        self.root.minsize(880, 600)
+        self.root.geometry("1080x760")
+        self.root.minsize(900, 620)
         self.item_count = 0
         self.scraped_items_list = []
         self.ipc_file = ""
@@ -151,22 +154,27 @@ class AtoZScrapyWindowsApp:
         self.notebook.add(self.tab_data, text="  📊 Live Data Feed  ")
         self._build_data_tab()
 
-        # Tab 3: Scrapy Core & Middlewares (Full Scrapy Feature Set)
+        # Tab 3: AI Spider Generator
+        self.tab_generator = ttk.Frame(self.notebook, padding=15)
+        self.notebook.add(self.tab_generator, text="  ✨ AI Spider Generator  ")
+        self._build_generator_tab()
+
+        # Tab 4: Scrapy Core & Middlewares
         self.tab_scrapy_core = ttk.Frame(self.notebook, padding=15)
         self.notebook.add(self.tab_scrapy_core, text="  🛠️ Scrapy Core  ")
         self._build_scrapy_core_tab()
 
-        # Tab 4: AI Scraper Insights
+        # Tab 5: AI Scraper Insights
         self.tab_insights = ttk.Frame(self.notebook, padding=15)
         self.notebook.add(self.tab_insights, text="  💡 AI Insights  ")
         self._build_insights_tab()
 
-        # Tab 5: Engine & Playwright Settings
+        # Tab 6: Engine & Playwright Settings
         self.tab_settings = ttk.Frame(self.notebook, padding=15)
         self.notebook.add(self.tab_settings, text="  ⚙️ Playwright & Proxies  ")
         self._build_settings_tab()
 
-        # Tab 6: GitHub Auto-Updater
+        # Tab 7: GitHub Auto-Updater
         self.tab_updater = ttk.Frame(self.notebook, padding=15)
         self.notebook.add(self.tab_updater, text="  🔄 GitHub Updater  ")
         self._build_updater_tab()
@@ -174,20 +182,36 @@ class AtoZScrapyWindowsApp:
     def _build_launcher_tab(self):
         frame = self.tab_launcher
 
-        # Spider selection / input
-        ttk.Label(frame, text="Spider Name / File:").grid(row=0, column=0, sticky="w", pady=4)
-        self.spider_input = tk.Entry(frame, width=35, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 10))
-        self.spider_input.insert(0, "demo_quotes")
-        self.spider_input.grid(row=0, column=1, sticky="w", padx=10, pady=4)
+        # Preset template selection & Spider input
+        ttk.Label(frame, text="Preset Template / Spider Name:").grid(row=0, column=0, sticky="w", pady=4)
+        
+        spider_frame = ttk.Frame(frame)
+        spider_frame.grid(row=0, column=1, sticky="w", padx=10, pady=4)
 
-        ttk.Label(frame, text="Target URL (Optional):").grid(row=1, column=0, sticky="w", pady=4)
+        self.spider_combo = ttk.Combobox(spider_frame, values=["universal", "reddit", "wikipedia", "news", "demo_quotes"], width=20)
+        self.spider_combo.set("universal")
+        self.spider_combo.pack(side="left", padx=(0, 5))
+        self.spider_combo.bind("<<ComboboxSelected>>", self._on_preset_selected)
+
+        self.spider_input = tk.Entry(spider_frame, width=25, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 10))
+        self.spider_input.insert(0, "universal")
+        self.spider_input.pack(side="left")
+
+        # Target URL
+        ttk.Label(frame, text="Target URL:").grid(row=1, column=0, sticky="w", pady=4)
         self.url_input = tk.Entry(frame, width=60, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 10))
-        self.url_input.insert(0, "https://quotes.toscrape.com")
+        self.url_input.insert(0, "https://en.wikipedia.org/wiki/Artificial_intelligence")
         self.url_input.grid(row=1, column=1, sticky="w", padx=10, pady=4)
+
+        # Keyword & Phrase Filter
+        ttk.Label(frame, text="Keyword / Phrase Filter (Optional):").grid(row=2, column=0, sticky="w", pady=4)
+        self.keywords_input = tk.Entry(frame, width=60, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 10))
+        self.keywords_input.insert(0, "")
+        self.keywords_input.grid(row=2, column=1, sticky="w", padx=10, pady=4)
 
         # Limits Configuration Frame
         limits_frame = ttk.LabelFrame(frame, text=" Scraping Limits & Concurrency ", padding=10)
-        limits_frame.grid(row=2, column=0, columnspan=2, sticky="ew", pady=8)
+        limits_frame.grid(row=3, column=0, columnspan=2, sticky="ew", pady=8)
 
         ttk.Label(limits_frame, text="Concurrent Requests:").grid(row=0, column=0, sticky="w", padx=5)
         self.concurrency_spin = ttk.Spinbox(limits_frame, from_=1, to=128, width=8)
@@ -205,8 +229,8 @@ class AtoZScrapyWindowsApp:
         self.max_depth_spin.grid(row=0, column=5, sticky="w", padx=5)
 
         # Controls
-        btn_frame = ttk.Frame(frame, padding=(0, 8))
-        btn_frame.grid(row=3, column=0, columnspan=2, sticky="w")
+        btn_frame = ttk.Frame(frame, padding=(0, 6))
+        btn_frame.grid(row=4, column=0, columnspan=2, sticky="w")
 
         self.btn_run = ttk.Button(btn_frame, text="▶ Start Spider", command=self._start_spider)
         self.btn_run.pack(side="left", padx=5)
@@ -215,11 +239,32 @@ class AtoZScrapyWindowsApp:
         self.btn_stop.pack(side="left", padx=5)
 
         # Execution Log Output
-        ttk.Label(frame, text="Execution Output Log:").grid(row=4, column=0, sticky="w", pady=(5, 2))
-        self.log_text = scrolledtext.ScrolledText(frame, height=13, bg="#11111b", fg="#a6adc8", font=("Consolas", 9), insertbackground="#ffffff")
-        self.log_text.grid(row=5, column=0, columnspan=2, sticky="nsew", pady=5)
-        frame.rowconfigure(5, weight=1)
+        ttk.Label(frame, text="Execution Output Log:").grid(row=5, column=0, sticky="w", pady=(5, 2))
+        self.log_text = scrolledtext.ScrolledText(frame, height=11, bg="#11111b", fg="#a6adc8", font=("Consolas", 9), insertbackground="#ffffff")
+        self.log_text.grid(row=6, column=0, columnspan=2, sticky="nsew", pady=4)
+        frame.rowconfigure(6, weight=1)
         frame.columnconfigure(1, weight=1)
+
+    def _on_preset_selected(self, event=None):
+        preset = self.spider_combo.get()
+        self.spider_input.delete(0, "end")
+        self.spider_input.insert(0, preset)
+
+        if preset == "universal":
+            self.url_input.delete(0, "end")
+            self.url_input.insert(0, "https://en.wikipedia.org/wiki/Artificial_intelligence")
+        elif preset == "reddit":
+            self.url_input.delete(0, "end")
+            self.url_input.insert(0, "https://www.reddit.com/r/Appideas/")
+        elif preset == "wikipedia":
+            self.url_input.delete(0, "end")
+            self.url_input.insert(0, "https://en.wikipedia.org/wiki/Technology")
+        elif preset == "news":
+            self.url_input.delete(0, "end")
+            self.url_input.insert(0, "https://news.ycombinator.com")
+        elif preset == "demo_quotes":
+            self.url_input.delete(0, "end")
+            self.url_input.insert(0, "https://quotes.toscrape.com")
 
     def _build_data_tab(self):
         frame = self.tab_data
@@ -249,6 +294,56 @@ class AtoZScrapyWindowsApp:
         ttk.Button(export_frame, text="📄 Export JSON", command=self._export_json).pack(side="left", padx=5)
         ttk.Button(export_frame, text="📝 Export TXT", command=self._export_txt).pack(side="left", padx=5)
         ttk.Button(export_frame, text="📕 Export PDF", command=self._export_pdf).pack(side="left", padx=5)
+
+    def _build_generator_tab(self):
+        frame = self.tab_generator
+
+        ttk.Label(frame, text="✨ AI Custom Spider Generator", style="Header.TLabel").pack(anchor="w", pady=5)
+
+        info_lbl = ttk.Label(
+            frame,
+            text="Enter any website URL to automatically generate a dedicated Scrapy Spider Python module.\n"
+                 "The generated spider will be added directly into your project's spider registry.",
+            justify="left"
+        )
+        info_lbl.pack(anchor="w", pady=5)
+
+        gen_form = ttk.Frame(frame, padding=10)
+        gen_form.pack(fill="x", pady=10)
+
+        ttk.Label(gen_form, text="New Spider Name:").grid(row=0, column=0, sticky="w", pady=5)
+        self.gen_name_input = tk.Entry(gen_form, width=30, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 10))
+        self.gen_name_input.insert(0, "tech_news")
+        self.gen_name_input.grid(row=0, column=1, sticky="w", padx=10, pady=5)
+
+        ttk.Label(gen_form, text="Target Website URL:").grid(row=1, column=0, sticky="w", pady=5)
+        self.gen_url_input = tk.Entry(gen_form, width=55, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 10))
+        self.gen_url_input.insert(0, "https://news.ycombinator.com")
+        self.gen_url_input.grid(row=1, column=1, sticky="w", padx=10, pady=5)
+
+        btn_gen = ttk.Button(gen_form, text="✨ Generate & Save Spider", command=self._generate_spider)
+        btn_gen.grid(row=2, column=0, columnspan=2, sticky="w", pady=10)
+
+        self.gen_log = scrolledtext.ScrolledText(frame, height=12, bg="#11111b", fg="#a6e3a1", font=("Consolas", 9), insertbackground="#ffffff")
+        self.gen_log.pack(fill="both", expand=True, pady=5)
+        self.gen_log.insert("end", "[AI Generator] Enter details above and click 'Generate & Save Spider'.\n")
+
+    def _generate_spider(self):
+        s_name = self.gen_name_input.get().strip()
+        s_url = self.gen_url_input.get().strip()
+        if not s_name or not s_url:
+            messagebox.showwarning("Input Error", "Please provide spider name and target URL.")
+            return
+
+        try:
+            target_dir = r"c:\Users\saghi\Downloads\Scrapy\scrapy\spiders"
+            filepath = save_generated_spider(s_name, s_url, target_dir)
+            self.gen_log.insert("end", f"✅ Successfully generated spider '{s_name}'!\n")
+            self.gen_log.insert("end", f"📄 Saved to: {filepath}\n")
+            self.gen_log.see("end")
+            messagebox.showinfo("Spider Generated", f"Spider '{s_name}' created successfully!\nYou can now type '{s_name}' into the Spider Control tab.")
+        except Exception as e:
+            self.gen_log.insert("end", f"❌ Error generating spider: {e}\n")
 
     def _build_scrapy_core_tab(self):
         frame = self.tab_scrapy_core
@@ -510,8 +605,9 @@ class AtoZScrapyWindowsApp:
 
     def _start_spider(self):
         raw_spider_name = self.spider_input.get().strip()
-        spider_name = raw_spider_name.lower().replace(" ", "_") if raw_spider_name else "reddit"
+        spider_name = raw_spider_name.lower().replace(" ", "_") if raw_spider_name else "universal"
         target_url = self.url_input.get().strip()
+        keywords = self.keywords_input.get().strip()
 
         concurrency = self.concurrency_spin.get()
         max_items = int(self.max_items_spin.get() or 0)
@@ -533,6 +629,8 @@ class AtoZScrapyWindowsApp:
                 pass
 
         self.log_text.insert("end", f"[SYS] Launching spider '{spider_name}' targeting {target_url}...\n")
+        if keywords:
+            self.log_text.insert("end", f"[FILTER] Active Keyword/Phrase Filter: '{keywords}'\n")
         self.log_text.insert("end", "[SYS] Windows IOCP Async Engine initialized.\n")
         self.log_text.insert("end", f"[ENGINE] Playwright dynamic rendering: {'ENABLED' if self.playwright_var.get() else 'DISABLED'}\n")
         self.log_text.insert("end", f"[ENGINE] Concurrency level: {concurrency} req/sec.\n")
@@ -572,13 +670,16 @@ class AtoZScrapyWindowsApp:
             cmd.extend(["-s", f"RETRY_TIMES={self.retry_spin.get()}"])
             cmd.extend(["-s", f"ROBOTSTXT_OBEY={'True' if self.robots_var.get() else 'False'}"])
             cmd.extend(["-s", f"COOKIES_ENABLED={'True' if self.cookies_var.get() else 'False'}"])
+            if self.ua_input.get().strip():
+                cmd.extend(["-s", f"USER_AGENT={self.ua_input.get().strip()}"])
+
             if target_url:
                 cmd.extend(["-a", f"target_url={target_url}"])
+            if keywords:
+                cmd.extend(["-a", f"keywords={keywords}"])
 
             # Append target spider_name as final argument
             cmd.append(spider_name)
-
-
 
             env = os.environ.copy()
             env["SCRAPY_SETTINGS_MODULE"] = "scrapy.settings"
