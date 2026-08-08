@@ -293,7 +293,8 @@ class AtoZScrapyWindowsApp:
         ).grid(row=0, column=1, sticky="w", padx=20, pady=2)
 
         ttk.Label(ua_frame, text="Custom User-Agent:").grid(row=1, column=0, sticky="w", padx=5, pady=4)
-        self.ua_input = tk.Entry(ua_frame, width=65, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 9.5))
+        self.ua_input = tk.Entry(ua_frame, width=65, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 9))
+
         self.ua_input.insert(0, "AtoZ-Scrapy-Windows-ED/0.0.1 (+https://github.com)")
         self.ua_input.grid(row=1, column=1, columnspan=3, sticky="w", padx=5, pady=4)
 
