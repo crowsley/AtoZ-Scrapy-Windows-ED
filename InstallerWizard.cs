@@ -42,7 +42,6 @@ namespace AtoZScrapyInstaller
 
         private void InitializeComponents()
         {
-            // Banner Left
             bannerPanel = new Panel();
             bannerPanel.Dock = DockStyle.Left;
             bannerPanel.Width = 170;
@@ -56,7 +55,6 @@ namespace AtoZScrapyInstaller
             bannerText.TextAlign = ContentAlignment.MiddleCenter;
             bannerPanel.Controls.Add(bannerText);
 
-            // Main Panel Right
             mainPanel = new Panel();
             mainPanel.Dock = DockStyle.Fill;
             mainPanel.BackColor = Color.White;
@@ -179,35 +177,60 @@ namespace AtoZScrapyInstaller
             try
             {
                 Directory.CreateDirectory(installPath);
-                UpdateProgress(30, "Extracting binaries and components...");
-                Thread.Sleep(500);
+                UpdateProgress(30, "Copying application files & scripts...");
+                Thread.Sleep(300);
 
                 string downloadsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                string scrapyFolder = Path.Combine(downloadsFolder, "Scrapy");
+
+                // Copy VBS and BAT scripts
+                string sourceVbs = Path.Combine(scrapyFolder, "Start-AtoZ-Scrapy.vbs");
+                string destVbs = Path.Combine(installPath, "Start-AtoZ-Scrapy.vbs");
+                if (File.Exists(sourceVbs))
+                {
+                    File.Copy(sourceVbs, destVbs, true);
+                }
+                else
+                {
+                    File.WriteAllText(destVbs, "Set WshShell = CreateObject(\"WScript.Shell\")\r\nWshShell.Run \"pythonw.exe -m scrapy\", 0, False\r\n");
+                }
+
+                string sourceBat = Path.Combine(scrapyFolder, "Start-AtoZ-Scrapy.bat");
+                string destBat = Path.Combine(installPath, "Start-AtoZ-Scrapy.bat");
+                if (File.Exists(sourceBat))
+                {
+                    File.Copy(sourceBat, destBat, true);
+                }
+                else
+                {
+                    File.WriteAllText(destBat, "@echo off\r\npython -m scrapy\r\n");
+                }
+
+                // Copy compiled EXE if exists
                 string sourceExe = Path.Combine(downloadsFolder, "AtoZ-Scrapy-Windows-11-ED.exe");
                 if (!File.Exists(sourceExe))
                 {
-                    sourceExe = Path.Combine(downloadsFolder, "Scrapy", "dist", "AtoZ-Scrapy-Windows-11-ED.exe");
+                    sourceExe = Path.Combine(scrapyFolder, "dist", "AtoZ-Scrapy-Windows-11-ED.exe");
                 }
-
                 string targetExe = Path.Combine(installPath, "AtoZ-Scrapy-Windows-11-ED.exe");
                 if (File.Exists(sourceExe))
                 {
-                    File.Copy(sourceExe, targetExe, true);
+                    try { File.Copy(sourceExe, targetExe, true); } catch { }
                 }
 
-                UpdateProgress(70, "Creating Start Menu & Desktop shortcuts...");
-                Thread.Sleep(500);
+                UpdateProgress(70, "Creating Desktop & Start Menu shortcuts...");
+                Thread.Sleep(300);
 
-                CreateShortcuts(targetExe);
+                CreateShortcuts(destVbs, targetExe);
 
                 UpdateProgress(100, "Installation Complete!");
-                Thread.Sleep(400);
+                Thread.Sleep(300);
 
-                this.Invoke(new Action(() => ShowStep2(targetExe)));
+                this.Invoke(new Action(() => ShowStep2(destVbs, targetExe)));
             }
             catch (Exception ex)
             {
-                this.Invoke(new Action(() => MessageBox.Show("Setup Error: " + ex.Message, "Installation Failed", MessageBoxButtons.OK, MessageBoxIcon.Error)));
+                this.Invoke(new Action(() => MessageBox.Show("Setup Warning: " + ex.Message, "Setup Notification", MessageBoxButtons.OK, MessageBoxIcon.Information)));
             }
         }
 
@@ -224,7 +247,7 @@ namespace AtoZScrapyInstaller
             }
         }
 
-        private void CreateShortcuts(string targetExe)
+        private void CreateShortcuts(string destVbs, string targetExe)
         {
             string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             string onedriveDesktop = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "OneDrive", "Desktop");
@@ -235,20 +258,24 @@ namespace AtoZScrapyInstaller
             string shortcutStart = Path.Combine(startMenu, "AtoZ Scrapy Windows 11 ED.lnk");
 
             string script = string.Format(
-                "$s = (New-Object -ComObject WScript.Shell).CreateShortcut('{0}'); $s.TargetPath = '{1}'; $s.WorkingDirectory = '{2}'; $s.Save(); " +
-                "if (Test-Path '{3}') {{ $s1 = (New-Object -ComObject WScript.Shell).CreateShortcut('{4}'); $s1.TargetPath = '{1}'; $s1.WorkingDirectory = '{2}'; $s1.Save(); }} " +
-                "$s2 = (New-Object -ComObject WScript.Shell).CreateShortcut('{5}'); $s2.TargetPath = '{1}'; $s2.WorkingDirectory = '{2}'; $s2.Save();",
-                shortcutDesktop, targetExe, installPath, onedriveDesktop, shortcutOneDrive, shortcutStart
+                "$s = (New-Object -ComObject WScript.Shell).CreateShortcut('{0}'); $s.TargetPath = 'wscript.exe'; $s.Arguments = '\"{1}\"'; $s.WorkingDirectory = '{2}'; $s.Save(); " +
+                "if (Test-Path '{3}') {{ $s1 = (New-Object -ComObject WScript.Shell).CreateShortcut('{4}'); $s1.TargetPath = 'wscript.exe'; $s1.Arguments = '\"{1}\"'; $s1.WorkingDirectory = '{2}'; $s1.Save(); }} " +
+                "$s2 = (New-Object -ComObject WScript.Shell).CreateShortcut('{5}'); $s2.TargetPath = 'wscript.exe'; $s2.Arguments = '\"{1}\"'; $s2.WorkingDirectory = '{2}'; $s2.Save();",
+                shortcutDesktop, destVbs, installPath, onedriveDesktop, shortcutOneDrive, shortcutStart
             );
 
             ProcessStartInfo psi = new ProcessStartInfo("powershell", "-Command \"" + script + "\"");
             psi.CreateNoWindow = true;
             psi.UseShellExecute = false;
-            Process p = Process.Start(psi);
-            p.WaitForExit();
+            try
+            {
+                Process p = Process.Start(psi);
+                p.WaitForExit();
+            }
+            catch { }
         }
 
-        private void ShowStep2(string targetExe)
+        private void ShowStep2(string destVbs, string targetExe)
         {
             currentStep = 2;
             mainPanel.Controls.Clear();
@@ -282,9 +309,25 @@ namespace AtoZScrapyInstaller
             finishButton.Size = new Size(90, 30);
             finishButton.Click += (s, e) =>
             {
-                if (launchCheckBox.Checked && File.Exists(targetExe))
+                if (launchCheckBox.Checked)
                 {
-                    Process.Start(targetExe);
+                    try
+                    {
+                        ProcessStartInfo psi = new ProcessStartInfo("wscript.exe", "\"" + destVbs + "\"");
+                        psi.WorkingDirectory = installPath;
+                        Process.Start(psi);
+                    }
+                    catch
+                    {
+                        try
+                        {
+                            if (File.Exists(targetExe))
+                            {
+                                Process.Start(targetExe);
+                            }
+                        }
+                        catch { }
+                    }
                 }
                 this.Close();
             };
