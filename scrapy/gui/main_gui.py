@@ -3,7 +3,8 @@ AtoZ Scrapy Windows ED 0.0.1 - Main Windows Desktop GUI Application
 
 Provides a native Windows desktop app for controlling spiders, configuring
 proxies and Playwright, streaming live scraped data, scraping limits controls,
-expanded TXT/CSV/PDF/JSON exporters, and AI Scraper Insights & Recommendations.
+expanded TXT/CSV/PDF/JSON exporters, full Scrapy Core features (AutoThrottle,
+HTTPCache, Retries, User-Agent, Cookies, Robots.txt), and AI Scraper Insights.
 """
 
 import sys
@@ -31,8 +32,8 @@ class AtoZScrapyWindowsApp:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title(FULL_APP_TITLE)
-        self.root.geometry("1020x720")
-        self.root.minsize(850, 580)
+        self.root.geometry("1060x740")
+        self.root.minsize(880, 600)
         self.item_count = 0
         self.scraped_items_list = []
 
@@ -40,10 +41,12 @@ class AtoZScrapyWindowsApp:
         self.style = ttk.Style()
         self.style.theme_use("clam")
 
-        # Configure colors (Dark / Modern Windows style)
+        # Configure colors (Modern Dark Windows style)
         bg_dark = "#1e1e2e"
         fg_light = "#cdd6f4"
         accent_blue = "#89b4fa"
+        field_bg = "#181825"
+        field_fg = "#ffffff"
 
         self.root.configure(bg=bg_dark)
         self.style.configure(".", background=bg_dark, foreground=fg_light, font=("Segoe UI", 10))
@@ -54,6 +57,10 @@ class AtoZScrapyWindowsApp:
         self.style.map("TButton", background=[("active", "#b4befe")])
         self.style.configure("Header.TLabel", font=("Segoe UI", 14, "bold"), foreground=accent_blue)
         self.style.configure("Status.TLabel", font=("Segoe UI", 9, "italic"), foreground="#a6adc8")
+
+        # High-Contrast Entry & Spinbox styling
+        self.style.configure("TEntry", fieldbackground=field_bg, foreground=field_fg, insertcolor=field_fg)
+        self.style.configure("TSpinbox", fieldbackground=field_bg, foreground=field_fg, insertcolor=field_fg)
 
         self.updater = GitHubUpdater()
 
@@ -106,27 +113,32 @@ class AtoZScrapyWindowsApp:
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill="both", expand=True, padx=15, pady=10)
 
-        # Tab 1: Spider Control & Launcher
+        # Tab 1: Spider Control & Limits
         self.tab_launcher = ttk.Frame(self.notebook, padding=15)
         self.notebook.add(self.tab_launcher, text="  🕷️ Spider Control  ")
         self._build_launcher_tab()
 
-        # Tab 2: Live Scraped Data
+        # Tab 2: Live Data Feed & Exporters
         self.tab_data = ttk.Frame(self.notebook, padding=15)
         self.notebook.add(self.tab_data, text="  📊 Live Data Feed  ")
         self._build_data_tab()
 
-        # Tab 3: AI Scraper Insights
+        # Tab 3: Scrapy Core & Middlewares (Full Scrapy Feature Set)
+        self.tab_scrapy_core = ttk.Frame(self.notebook, padding=15)
+        self.notebook.add(self.tab_scrapy_core, text="  🛠️ Scrapy Core  ")
+        self._build_scrapy_core_tab()
+
+        # Tab 4: AI Scraper Insights
         self.tab_insights = ttk.Frame(self.notebook, padding=15)
-        self.notebook.add(self.tab_insights, text="  💡 AI Scraper Insights  ")
+        self.notebook.add(self.tab_insights, text="  💡 AI Insights  ")
         self._build_insights_tab()
 
-        # Tab 4: Settings (Playwright & Proxies)
+        # Tab 5: Engine & Playwright Settings
         self.tab_settings = ttk.Frame(self.notebook, padding=15)
-        self.notebook.add(self.tab_settings, text="  ⚙️ Engine Settings  ")
+        self.notebook.add(self.tab_settings, text="  ⚙️ Playwright & Proxies  ")
         self._build_settings_tab()
 
-        # Tab 5: GitHub Auto-Updater
+        # Tab 6: GitHub Auto-Updater
         self.tab_updater = ttk.Frame(self.notebook, padding=15)
         self.notebook.add(self.tab_updater, text="  🔄 GitHub Updater  ")
         self._build_updater_tab()
@@ -136,12 +148,12 @@ class AtoZScrapyWindowsApp:
 
         # Spider selection / input
         ttk.Label(frame, text="Spider Name / File:").grid(row=0, column=0, sticky="w", pady=4)
-        self.spider_input = ttk.Entry(frame, width=40)
+        self.spider_input = tk.Entry(frame, width=35, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 10))
         self.spider_input.insert(0, "demo_quotes")
         self.spider_input.grid(row=0, column=1, sticky="w", padx=10, pady=4)
 
         ttk.Label(frame, text="Target URL (Optional):").grid(row=1, column=0, sticky="w", pady=4)
-        self.url_input = ttk.Entry(frame, width=60)
+        self.url_input = tk.Entry(frame, width=60, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 10))
         self.url_input.insert(0, "https://quotes.toscrape.com")
         self.url_input.grid(row=1, column=1, sticky="w", padx=10, pady=4)
 
@@ -165,7 +177,7 @@ class AtoZScrapyWindowsApp:
         self.max_depth_spin.grid(row=0, column=5, sticky="w", padx=5)
 
         # Controls
-        btn_frame = ttk.Frame(frame, padding=(0, 10))
+        btn_frame = ttk.Frame(frame, padding=(0, 8))
         btn_frame.grid(row=3, column=0, columnspan=2, sticky="w")
 
         self.btn_run = ttk.Button(btn_frame, text="▶ Start Spider", command=self._start_spider)
@@ -176,7 +188,7 @@ class AtoZScrapyWindowsApp:
 
         # Execution Log Output
         ttk.Label(frame, text="Execution Output Log:").grid(row=4, column=0, sticky="w", pady=(5, 2))
-        self.log_text = scrolledtext.ScrolledText(frame, height=13, bg="#11111b", fg="#a6adc8", font=("Consolas", 9))
+        self.log_text = scrolledtext.ScrolledText(frame, height=13, bg="#11111b", fg="#a6adc8", font=("Consolas", 9), insertbackground="#ffffff")
         self.log_text.grid(row=5, column=0, columnspan=2, sticky="nsew", pady=5)
         frame.rowconfigure(5, weight=1)
         frame.columnconfigure(1, weight=1)
@@ -195,7 +207,7 @@ class AtoZScrapyWindowsApp:
 
         self.data_table.column("#", width=50, anchor="center")
         self.data_table.column("URL / Title", width=250)
-        self.data_table.column("Scraped Content Snippet", width=470)
+        self.data_table.column("Scraped Content Snippet", width=490)
         self.data_table.column("Timestamp", width=140)
 
         self.data_table.pack(fill="both", expand=True, pady=10)
@@ -210,6 +222,81 @@ class AtoZScrapyWindowsApp:
         ttk.Button(export_frame, text="📝 Export TXT", command=self._export_txt).pack(side="left", padx=5)
         ttk.Button(export_frame, text="📕 Export PDF", command=self._export_pdf).pack(side="left", padx=5)
 
+    def _build_scrapy_core_tab(self):
+        frame = self.tab_scrapy_core
+
+        ttk.Label(frame, text="🛠️ Full Scrapy Core & Middleware Feature Matrix", style="Header.TLabel").pack(anchor="w", pady=5)
+
+        # AutoThrottle Section
+        at_frame = ttk.LabelFrame(frame, text=" ⚡ AutoThrottle & Rate Limiting ", padding=10)
+        at_frame.pack(fill="x", pady=6)
+
+        self.autothrottle_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(
+            at_frame, text="Enable AutoThrottle (AUTOTHROTTLE_ENABLED)",
+            variable=self.autothrottle_var, bg="#1e1e2e", fg="#ffffff", selectcolor="#313244", activebackground="#1e1e2e", font=("Segoe UI", 9, "bold")
+        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=2)
+
+        ttk.Label(at_frame, text="Download Delay (sec):").grid(row=1, column=0, sticky="w", padx=5)
+        self.download_delay_spin = ttk.Spinbox(at_frame, from_=0, to=60, width=8)
+        self.download_delay_spin.set(0)
+        self.download_delay_spin.grid(row=1, column=1, sticky="w", padx=5)
+
+        ttk.Label(at_frame, text="AutoThrottle Target Concurrency:").grid(row=1, column=2, sticky="w", padx=(20, 5))
+        self.at_concurrency_spin = ttk.Spinbox(at_frame, from_=1, to=64, width=8)
+        self.at_concurrency_spin.set(1)
+        self.at_concurrency_spin.grid(row=1, column=3, sticky="w", padx=5)
+
+        # HTTP Cache Section
+        cache_frame = ttk.LabelFrame(frame, text=" 💾 Response HTTP Caching ", padding=10)
+        cache_frame.pack(fill="x", pady=6)
+
+        self.httpcache_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(
+            cache_frame, text="Enable Local HTTP Response Cache (HTTPCACHE_ENABLED)",
+            variable=self.httpcache_var, bg="#1e1e2e", fg="#ffffff", selectcolor="#313244", activebackground="#1e1e2e", font=("Segoe UI", 9, "bold")
+        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=2)
+
+        ttk.Label(cache_frame, text="Cache Expiration (0 = Never):").grid(row=1, column=0, sticky="w", padx=5)
+        self.cache_exp_spin = ttk.Spinbox(cache_frame, from_=0, to=86400, width=10)
+        self.cache_exp_spin.set(0)
+        self.cache_exp_spin.grid(row=1, column=1, sticky="w", padx=5)
+
+        # Retries & Timeouts Section
+        retry_frame = ttk.LabelFrame(frame, text=" 🔄 Retries & Timeout Middleware ", padding=10)
+        retry_frame.pack(fill="x", pady=6)
+
+        ttk.Label(retry_frame, text="Download Timeout (sec):").grid(row=0, column=0, sticky="w", padx=5)
+        self.timeout_spin = ttk.Spinbox(retry_frame, from_=5, to=300, width=8)
+        self.timeout_spin.set(180)
+        self.timeout_spin.grid(row=0, column=1, sticky="w", padx=5)
+
+        ttk.Label(retry_frame, text="Max Retry Attempts:").grid(row=0, column=2, sticky="w", padx=(20, 5))
+        self.retry_spin = ttk.Spinbox(retry_frame, from_=0, to=20, width=8)
+        self.retry_spin.set(2)
+        self.retry_spin.grid(row=0, column=3, sticky="w", padx=5)
+
+        # User-Agent & Cookies Section
+        ua_frame = ttk.LabelFrame(frame, text=" 🌐 User-Agent, Cookies & Protocol ", padding=10)
+        ua_frame.pack(fill="x", pady=6)
+
+        self.robots_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(
+            ua_frame, text="Obey Robots.txt (ROBOTSTXT_OBEY)",
+            variable=self.robots_var, bg="#1e1e2e", fg="#ffffff", selectcolor="#313244", activebackground="#1e1e2e", font=("Segoe UI", 9, "bold")
+        ).grid(row=0, column=0, sticky="w", pady=2)
+
+        self.cookies_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(
+            ua_frame, text="Enable Session Cookies (COOKIES_ENABLED)",
+            variable=self.cookies_var, bg="#1e1e2e", fg="#ffffff", selectcolor="#313244", activebackground="#1e1e2e", font=("Segoe UI", 9, "bold")
+        ).grid(row=0, column=1, sticky="w", padx=20, pady=2)
+
+        ttk.Label(ua_frame, text="Custom User-Agent:").grid(row=1, column=0, sticky="w", padx=5, pady=4)
+        self.ua_input = tk.Entry(ua_frame, width=65, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 9.5))
+        self.ua_input.insert(0, "AtoZ-Scrapy-Windows-ED/0.0.1 (+https://github.com)")
+        self.ua_input.grid(row=1, column=1, columnspan=3, sticky="w", padx=5, pady=4)
+
     def _get_downloads_folder(self) -> str:
         return os.path.join(os.path.expanduser("~"), "Downloads")
 
@@ -217,7 +304,6 @@ class AtoZScrapyWindowsApp:
         if not self.scraped_items_list:
             messagebox.showinfo("Export", "No items scraped yet.")
             return
-        default_file = os.path.join(self._get_downloads_folder(), "scraped_data.csv")
         filename = filedialog.asksaveasfilename(initialdir=self._get_downloads_folder(), initialfile="scraped_data.csv", defaultextension=".csv", filetypes=[("CSV Files", "*.csv")])
         if filename:
             keys = self.scraped_items_list[0].keys()
@@ -301,8 +387,7 @@ class AtoZScrapyWindowsApp:
         btn_analyze = ttk.Button(frame, text="🔍 Analyze Current Scraper Results", command=self._run_ai_insights_analysis)
         btn_analyze.pack(anchor="w", pady=10)
 
-        self.insights_text = scrolledtext.ScrolledText(frame, height=18, bg="#11111b", fg="#a6e3a1", font=("Consolas", 9))
-
+        self.insights_text = scrolledtext.ScrolledText(frame, height=18, bg="#11111b", fg="#a6e3a1", font=("Consolas", 9), insertbackground="#ffffff")
         self.insights_text.pack(fill="both", expand=True, pady=5)
         self.insights_text.insert("end", "[AI] Click 'Analyze Current Scraper Results' above to generate analysis.\n")
 
@@ -357,7 +442,7 @@ class AtoZScrapyWindowsApp:
 
         # Proxy rotation
         ttk.Label(frame, text="Proxy List (One per line: http://user:pass@host:port):").pack(anchor="w", pady=(10, 5))
-        self.proxy_text = scrolledtext.ScrolledText(frame, height=8, bg="#11111b", fg="#cdd6f4", font=("Consolas", 9))
+        self.proxy_text = scrolledtext.ScrolledText(frame, height=8, bg="#11111b", fg="#cdd6f4", font=("Consolas", 9), insertbackground="#ffffff")
         self.proxy_text.insert("1.0", "# Example Proxy List:\n# http://127.0.0.1:8080\n")
         self.proxy_text.pack(fill="x", pady=5)
 
@@ -379,7 +464,7 @@ class AtoZScrapyWindowsApp:
         repo_frame.pack(fill="x")
 
         ttk.Label(repo_frame, text="GitHub Repository Owner/Repo:").pack(side="left", padx=5)
-        self.repo_entry = ttk.Entry(repo_frame, width=40)
+        self.repo_entry = tk.Entry(repo_frame, width=40, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 10))
         self.repo_entry.insert(0, "user/AtoZ-Scrapy-Windows-ED")
         self.repo_entry.pack(side="left", padx=5)
 
@@ -388,7 +473,7 @@ class AtoZScrapyWindowsApp:
         btn_check.pack(anchor="w", pady=10)
 
         # Output / status text
-        self.update_log = scrolledtext.ScrolledText(frame, height=10, bg="#11111b", fg="#a6e3a1", font=("Consolas", 9))
+        self.update_log = scrolledtext.ScrolledText(frame, height=10, bg="#11111b", fg="#a6e3a1", font=("Consolas", 9), insertbackground="#ffffff")
         self.update_log.pack(fill="both", expand=True, pady=10)
 
         self.btn_apply_update = ttk.Button(frame, text="⚡ Download & Install Latest Update", command=self._apply_github_update)
@@ -412,15 +497,38 @@ class AtoZScrapyWindowsApp:
         if max_depth > 0:
             self.log_text.insert("end", f"[LIMIT] Max Depth limit set to: {max_depth}\n")
 
+        # Full Scrapy Core Settings
+        delay = self.download_delay_spin.get()
+        if float(delay) > 0:
+            self.log_text.insert("end", f"[CORE] Download Delay: {delay} sec\n")
+
         self.log_text.see("end")
         self.status_var.set(f"Running spider: {spider_name}")
 
         def run_proc():
             cmd = [sys.executable, "-m", "scrapy", "crawl", spider_name]
+
+            # Append settings overrides
+            cmd.extend(["-s", f"CONCURRENT_REQUESTS={concurrency}"])
             if max_items > 0:
                 cmd.extend(["-s", f"CLOSESPIDER_ITEMCOUNT={max_items}"])
             if max_depth > 0:
                 cmd.extend(["-s", f"DEPTH_LIMIT={max_depth}"])
+            if self.autothrottle_var.get():
+                cmd.extend(["-s", "AUTOTHROTTLE_ENABLED=True"])
+                cmd.extend(["-s", f"AUTOTHROTTLE_TARGET_CONCURRENCY={self.at_concurrency_spin.get()}"])
+            if float(delay) > 0:
+                cmd.extend(["-s", f"DOWNLOAD_DELAY={delay}"])
+            if self.httpcache_var.get():
+                cmd.extend(["-s", "HTTPCACHE_ENABLED=True"])
+                if int(self.cache_exp_spin.get()) > 0:
+                    cmd.extend(["-s", f"HTTPCACHE_EXPIRATION_SECS={self.cache_exp_spin.get()}"])
+            cmd.extend(["-s", f"DOWNLOAD_TIMEOUT={self.timeout_spin.get()}"])
+            cmd.extend(["-s", f"RETRY_TIMES={self.retry_spin.get()}"])
+            cmd.extend(["-s", f"ROBOTSTXT_OBEY={'True' if self.robots_var.get() else 'False'}"])
+            cmd.extend(["-s", f"COOKIES_ENABLED={'True' if self.cookies_var.get() else 'False'}"])
+            if self.ua_input.get().strip():
+                cmd.extend(["-s", f"USER_AGENT={self.ua_input.get().strip()}"])
 
             env = os.environ.copy()
             env["SCRAPY_SETTINGS_MODULE"] = "scrapy.settings"
