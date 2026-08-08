@@ -285,6 +285,8 @@ class AtoZScrapyWindowsApp:
 
         def run_proc():
             cmd = [sys.executable, "-m", "scrapy", "crawl", spider_name]
+            env = os.environ.copy()
+            env["SCRAPY_SETTINGS_MODULE"] = "scrapy.settings"
             try:
                 self.current_process = subprocess.Popen(
                     cmd,
@@ -292,8 +294,10 @@ class AtoZScrapyWindowsApp:
                     stderr=subprocess.STDOUT,
                     text=True,
                     bufsize=1,
-                    cwd=os.getcwd()
+                    env=env,
+                    cwd=r"C:\Users\saghi\Downloads\Scrapy"
                 )
+
                 for line in iter(self.current_process.stdout.readline, ''):
                     if not line:
                         break
