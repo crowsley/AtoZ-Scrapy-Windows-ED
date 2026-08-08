@@ -560,7 +560,8 @@ SPIDER_MIDDLEWARES_BASE = {
     # Spider side
 }
 
-SPIDER_MODULES = []
+SPIDER_MODULES = ["scrapy.spiders"]
+
 
 STATS_CLASS = "scrapy.statscollectors.MemoryStatsCollector"
 STATS_DUMP = True
