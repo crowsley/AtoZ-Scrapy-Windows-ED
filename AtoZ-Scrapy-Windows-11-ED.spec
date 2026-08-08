@@ -6,7 +6,8 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[('scrapy', 'scrapy'), ('_tcl_data', '_tcl_data'), ('_tk_data', '_tk_data')],
-    hiddenimports=['scrapy.gui.version', 'scrapy.gui.updater', 'scrapy.gui.main_gui', 'scrapy.pipelines.gui_pipeline', 'scrapy.spiders.demo_quotes_spider', 'defusedxml', 'defusedxml.xmlrpc', 'protego', 'h2', 'hpack', 'hyperframe', 'w3lib', 'queuelib', 'itemadapter'],
+    hiddenimports=['scrapy.gui.version', 'scrapy.gui.updater', 'scrapy.gui.main_gui', 'scrapy.pipelines.gui_pipeline', 'scrapy.spiders.demo_quotes_spider', 'defusedxml', 'defusedxml.xmlrpc', 'protego', 'h2', 'hpack', 'hyperframe', 'w3lib', 'queuelib', 'itemadapter', 'fpdf', 'reportlab'],
+
 
 
     hookspath=[],
