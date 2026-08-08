@@ -58,9 +58,26 @@ class AtoZScrapyWindowsApp:
         self.style.configure("Header.TLabel", font=("Segoe UI", 14, "bold"), foreground=accent_blue)
         self.style.configure("Status.TLabel", font=("Segoe UI", 9, "italic"), foreground="#a6adc8")
 
-        # High-Contrast Entry & Spinbox styling
+        # High-Contrast Entry, Spinbox & Treeview styling
         self.style.configure("TEntry", fieldbackground=field_bg, foreground=field_fg, insertcolor=field_fg)
         self.style.configure("TSpinbox", fieldbackground=field_bg, foreground=field_fg, insertcolor=field_fg)
+
+        self.style.configure(
+            "Treeview",
+            background="#181825",
+            foreground="#ffffff",
+            fieldbackground="#181825",
+            rowheight=26,
+            font=("Segoe UI", 9)
+        )
+        self.style.configure(
+            "Treeview.Heading",
+            background="#313244",
+            foreground="#89b4fa",
+            font=("Segoe UI", 10, "bold")
+        )
+        self.style.map("Treeview", background=[("selected", "#89b4fa")], foreground=[("selected", "#11111b")])
+
 
         self.updater = GitHubUpdater()
 
