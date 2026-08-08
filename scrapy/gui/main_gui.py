@@ -14,21 +14,14 @@ from tkinter import ttk, messagebox, filedialog, scrolledtext
 from typing import Optional
 
 try:
+    from scrapy.gui.version import APP_NAME, APP_VERSION, FULL_APP_TITLE
+    from scrapy.gui.updater import GitHubUpdater
+    from scrapy.pipelines.gui_pipeline import GUI_ITEM_QUEUE
+except (ImportError, ValueError):
     from .version import APP_NAME, APP_VERSION, FULL_APP_TITLE
     from .updater import GitHubUpdater
     from scrapy.pipelines.gui_pipeline import GUI_ITEM_QUEUE
-except (ImportError, ValueError):
-    try:
-        from version import APP_NAME, APP_VERSION, FULL_APP_TITLE
-        from updater import GitHubUpdater
-    except Exception:
-        from scrapy.gui.version import APP_NAME, APP_VERSION, FULL_APP_TITLE
-        from scrapy.gui.updater import GitHubUpdater
-    try:
-        from scrapy.pipelines.gui_pipeline import GUI_ITEM_QUEUE
-    except Exception:
-        import queue
-        GUI_ITEM_QUEUE = queue.Queue()
+
 
 
 

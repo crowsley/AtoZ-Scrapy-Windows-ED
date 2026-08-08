@@ -14,12 +14,10 @@ import urllib.request
 import urllib.error
 from typing import Dict, Any, Tuple, Optional
 try:
-    from .version import APP_VERSION
+    from scrapy.gui.version import APP_VERSION
 except (ImportError, ValueError):
-    try:
-        from version import APP_VERSION
-    except Exception:
-        from scrapy.gui.version import APP_VERSION
+    from .version import APP_VERSION
+
 
 
 
