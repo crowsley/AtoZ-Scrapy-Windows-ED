@@ -81,6 +81,8 @@ zstd = ["zstandard>=0.16.0; implementation_name != 'pypy'"]
 
 [project.scripts]
 scrapy = "scrapy.cmdline:execute"
+atoz-scrapy = "scrapy.gui.cli:main"
+
 
 [tool.hatch.build.targets.sdist]
 include = [

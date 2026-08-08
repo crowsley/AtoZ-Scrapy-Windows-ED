@@ -15,6 +15,7 @@ from typing import Optional
 
 from .version import APP_NAME, APP_VERSION, FULL_APP_TITLE
 from .updater import GitHubUpdater
+from scrapy.pipelines.gui_pipeline import GUI_ITEM_QUEUE
 
 
 class AtoZScrapyWindowsApp:
@@ -23,10 +24,13 @@ class AtoZScrapyWindowsApp:
         self.root.title(FULL_APP_TITLE)
         self.root.geometry("980x680")
         self.root.minsize(800, 550)
+        self.item_count = 0
+        self.scraped_items_list = []
 
         # Style configuration
         self.style = ttk.Style()
         self.style.theme_use("clam")
+
 
         # Configure colors (Dark / Modern Windows style)
         bg_dark = "#1e1e2e"
@@ -49,6 +53,28 @@ class AtoZScrapyWindowsApp:
         self._create_header()
         self._create_tabs()
         self._create_statusbar()
+
+        # Start background item queue polling
+        self._poll_item_queue()
+
+    def _poll_item_queue(self):
+        try:
+            while not GUI_ITEM_QUEUE.empty():
+                item = GUI_ITEM_QUEUE.get_nowait()
+                self.item_count += 1
+                self.scraped_items_list.append(item.get("raw_item", {}))
+
+                self.data_table.insert(
+                    "",
+                    "end",
+                    values=(self.item_count, item.get("url"), item.get("content"), item.get("timestamp"))
+                )
+                self.status_var.set(f"Running | Total Scraped Items: {self.item_count}")
+        except Exception:
+            pass
+
+        self.root.after(200, self._poll_item_queue)
+
 
     def _create_header(self):
         header_frame = ttk.Frame(self.root, padding=(15, 10))
@@ -152,8 +178,34 @@ class AtoZScrapyWindowsApp:
         export_frame = ttk.Frame(frame)
         export_frame.pack(fill="x", pady=5)
 
-        ttk.Button(export_frame, text="💾 Export to CSV", command=lambda: messagebox.showinfo("Export", "Data exported to CSV successfully.")).pack(side="left", padx=5)
-        ttk.Button(export_frame, text="📄 Export to JSON", command=lambda: messagebox.showinfo("Export", "Data exported to JSON successfully.")).pack(side="left", padx=5)
+        ttk.Button(export_frame, text="💾 Export to CSV", command=self._export_csv).pack(side="left", padx=5)
+        ttk.Button(export_frame, text="📄 Export to JSON", command=self._export_json).pack(side="left", padx=5)
+
+    def _export_csv(self):
+        if not self.scraped_items_list:
+            messagebox.showinfo("Export", "No items scraped yet.")
+            return
+        filename = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV Files", "*.csv")])
+        if filename:
+            import csv
+            keys = self.scraped_items_list[0].keys()
+            with open(filename, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=keys)
+                writer.writeheader()
+                writer.writerows(self.scraped_items_list)
+            messagebox.showinfo("Export Complete", f"Exported {len(self.scraped_items_list)} items to {filename}")
+
+    def _export_json(self):
+        if not self.scraped_items_list:
+            messagebox.showinfo("Export", "No items scraped yet.")
+            return
+        filename = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON Files", "*.json")])
+        if filename:
+            import json
+            with open(filename, "w", encoding="utf-8") as f:
+                json.dump(self.scraped_items_list, f, indent=2)
+            messagebox.showinfo("Export Complete", f"Exported {len(self.scraped_items_list)} items to {filename}")
+
 
     def _build_settings_tab(self):
         frame = self.tab_settings
