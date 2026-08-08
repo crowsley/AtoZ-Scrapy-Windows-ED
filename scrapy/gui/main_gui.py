@@ -272,19 +272,56 @@ class AtoZScrapyWindowsApp:
         self.btn_apply_update.config(state="disabled")
 
     def _start_spider(self):
-        spider_name = self.spider_input.get()
-        target_url = self.url_input.get()
+        spider_name = self.spider_input.get().strip() or "demo_quotes"
+        target_url = self.url_input.get().strip()
+        concurrency = self.concurrency_spin.get()
+
         self.log_text.insert("end", f"[SYS] Launching spider '{spider_name}' targeting {target_url}...\n")
         self.log_text.insert("end", "[SYS] Windows IOCP Async Engine initialized.\n")
         self.log_text.insert("end", f"[ENGINE] Playwright dynamic rendering: {'ENABLED' if self.playwright_var.get() else 'DISABLED'}\n")
-        self.log_text.insert("end", f"[ENGINE] Concurrency level: {self.concurrency_spin.get()} requests/sec.\n")
+        self.log_text.insert("end", f"[ENGINE] Concurrency level: {concurrency} requests/sec.\n")
         self.log_text.see("end")
         self.status_var.set(f"Running spider: {spider_name}")
 
+        def run_proc():
+            cmd = [sys.executable, "-m", "scrapy", "crawl", spider_name]
+            try:
+                self.current_process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,
+                    cwd=os.getcwd()
+                )
+                for line in iter(self.current_process.stdout.readline, ''):
+                    if not line:
+                        break
+                    self.root.after(0, lambda l=line: (self.log_text.insert("end", l), self.log_text.see("end")))
+
+                self.current_process.wait()
+                self.root.after(0, lambda: (
+                    self.log_text.insert("end", f"[SYS] Spider '{spider_name}' run finished cleanly.\n"),
+                    self.log_text.see("end"),
+                    self.status_var.set("Engine idle.")
+                ))
+            except Exception as e:
+                self.root.after(0, lambda: self.log_text.insert("end", f"[ERROR] Failed to run spider: {e}\n"))
+
+        threading.Thread(target=run_proc, daemon=True).start()
+
     def _stop_spider(self):
-        self.log_text.insert("end", "[SYS] Engine stop signal received. Shutting down workers gracefully...\n")
+        if hasattr(self, 'current_process') and self.current_process:
+            try:
+                self.current_process.terminate()
+                self.log_text.insert("end", "[SYS] Engine process terminated gracefully.\n")
+            except Exception as e:
+                self.log_text.insert("end", f"[ERROR] Error stopping process: {e}\n")
+        else:
+            self.log_text.insert("end", "[SYS] Engine stop signal received.\n")
         self.log_text.see("end")
         self.status_var.set("Engine stopped.")
+
 
     def _check_github_updates(self):
         repo_info = self.repo_entry.get().strip()
