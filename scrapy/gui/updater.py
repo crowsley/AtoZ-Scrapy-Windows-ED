@@ -25,10 +25,11 @@ class GitHubUpdater:
     Manages checking for updates from GitHub releases & commits.
     """
 
-    def __init__(self, repo_owner: str = "S4gh1R", repo_name: str = "AtoZ-Scrapy-Windows-ED"):
+    def __init__(self, repo_owner: str = "crowsley", repo_name: str = "AtoZ-Scrapy-Windows-ED"):
         self.repo_owner = repo_owner
         self.repo_name = repo_name
         self.current_version = APP_VERSION
+
 
     def check_for_updates(self, repo_url_or_owner: Optional[str] = None) -> Tuple[bool, Dict[str, Any]]:
         """
@@ -37,7 +38,8 @@ class GitHubUpdater:
         """
         repo_spec = repo_url_or_owner or f"{self.repo_owner}/{self.repo_name}"
         if not repo_spec or "user/" in repo_spec:
-            repo_spec = "S4gh1R/AtoZ-Scrapy-Windows-ED"
+            repo_spec = "crowsley/AtoZ-Scrapy-Windows-ED"
+
 
         repo_path = repo_spec.replace("https://github.com/", "").strip("/")
 

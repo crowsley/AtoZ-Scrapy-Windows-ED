@@ -588,8 +588,7 @@ class AtoZScrapyWindowsApp:
 
         ttk.Label(repo_frame, text="GitHub Repository Owner/Repo:").pack(side="left", padx=5)
         self.repo_entry = tk.Entry(repo_frame, width=40, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 10))
-        self.repo_entry.insert(0, "S4gh1R/AtoZ-Scrapy-Windows-ED")
-
+        self.repo_entry.insert(0, "crowsley/AtoZ-Scrapy-Windows-ED")
         self.repo_entry.pack(side="left", padx=5)
 
         btn_frame = ttk.Frame(frame)
@@ -611,9 +610,10 @@ class AtoZScrapyWindowsApp:
 
     def _open_github_link(self):
         import webbrowser
-        repo_spec = self.repo_entry.get().strip() or "S4gh1R/AtoZ-Scrapy-Windows-ED"
+        repo_spec = self.repo_entry.get().strip() or "crowsley/AtoZ-Scrapy-Windows-ED"
         url = f"https://github.com/{repo_spec}"
         webbrowser.open(url)
+
 
 
     def _start_spider(self):

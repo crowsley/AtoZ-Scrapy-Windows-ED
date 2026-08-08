@@ -9,7 +9,8 @@
 **AtoZ Scrapy Windows ED 0.0.1** is an enterprise-grade, high-concurrency web scraping framework and native Windows desktop application. Forked from Scrapy, it combines an asynchronous **Windows IOCP Event Loop Engine**, **Playwright Dynamic JS Rendering**, **Real-Time Data Streaming**, **Multi-Format Exporters**, **Keyword/Phrase Filtering**, **Scraping Limits Controls**, and a **Built-In GitHub Release Auto-Updater**.
 
 ### Author & Copyright
-- **Author**: S4gh1R (`saghirh@gmail.com`)
+- **Author**: crowsley (`saghirh@gmail.com`)
+- **Repository**: [https://github.com/crowsley/AtoZ-Scrapy-Windows-ED](https://github.com/crowsley/AtoZ-Scrapy-Windows-ED)
 - **Version**: `0.0.1 (Windows ED)`
 - **License**: **MIT License** (Free & Open Source Software)
 
@@ -44,7 +45,7 @@
    - Turn any target URL into a dedicated `.py` spider module in 1 click.
 
 8. **🔄 GitHub Release Auto-Updater**
-   - Automatically checks GitHub releases and updates the local app with 1 click.
+   - Automatically checks GitHub releases/commits for `crowsley/AtoZ-Scrapy-Windows-ED` and updates the local app with 1 click.
 
 ---
 
