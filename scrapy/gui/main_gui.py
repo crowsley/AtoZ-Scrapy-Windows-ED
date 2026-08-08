@@ -549,10 +549,7 @@ class AtoZScrapyWindowsApp:
         self.status_var.set(f"Running spider: {spider_name}")
 
         def run_proc():
-            cmd = [sys.executable, "-m", "scrapy", "crawl", spider_name]
-
-            # Stream output items to IPC JSONLines file
-            cmd.extend(["-o", self.ipc_file, "-t", "jsonlines"])
+            cmd = [sys.executable, "-m", "scrapy", "crawl", "-O", self.ipc_file]
 
             # Append settings overrides
             cmd.extend(["-s", f"CONCURRENT_REQUESTS={concurrency}"])
@@ -575,6 +572,10 @@ class AtoZScrapyWindowsApp:
             cmd.extend(["-s", f"COOKIES_ENABLED={'True' if self.cookies_var.get() else 'False'}"])
             if self.ua_input.get().strip():
                 cmd.extend(["-s", f"USER_AGENT={self.ua_input.get().strip()}"])
+
+            # Append target spider_name as final argument
+            cmd.append(spider_name)
+
 
             env = os.environ.copy()
             env["SCRAPY_SETTINGS_MODULE"] = "scrapy.settings"
