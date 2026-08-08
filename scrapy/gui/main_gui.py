@@ -592,9 +592,14 @@ class AtoZScrapyWindowsApp:
 
         self.repo_entry.pack(side="left", padx=5)
 
-        # Check button
-        btn_check = ttk.Button(frame, text="🔄 Check GitHub for Updates", command=self._check_github_updates)
-        btn_check.pack(anchor="w", pady=10)
+        btn_frame = ttk.Frame(frame)
+        btn_frame.pack(anchor="w", pady=10)
+
+        btn_check = ttk.Button(btn_frame, text="🔄 Check GitHub for Updates", command=self._check_github_updates)
+        btn_check.pack(side="left", padx=(0, 10))
+
+        btn_open = ttk.Button(btn_frame, text="🔗 Open GitHub Repository in Browser", command=self._open_github_link)
+        btn_open.pack(side="left")
 
         # Output / status text
         self.update_log = scrolledtext.ScrolledText(frame, height=10, bg="#11111b", fg="#a6e3a1", font=("Consolas", 9), insertbackground="#ffffff")
@@ -603,6 +608,13 @@ class AtoZScrapyWindowsApp:
         self.btn_apply_update = ttk.Button(frame, text="⚡ Download & Install Latest Update", command=self._apply_github_update)
         self.btn_apply_update.pack(anchor="w", pady=5)
         self.btn_apply_update.config(state="disabled")
+
+    def _open_github_link(self):
+        import webbrowser
+        repo_spec = self.repo_entry.get().strip() or "S4gh1R/AtoZ-Scrapy-Windows-ED"
+        url = f"https://github.com/{repo_spec}"
+        webbrowser.open(url)
+
 
     def _start_spider(self):
         raw_spider_name = self.spider_input.get().strip()
