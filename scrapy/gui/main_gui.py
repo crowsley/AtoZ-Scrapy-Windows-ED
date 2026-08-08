@@ -509,8 +509,10 @@ class AtoZScrapyWindowsApp:
         self.btn_apply_update.config(state="disabled")
 
     def _start_spider(self):
-        spider_name = self.spider_input.get().strip() or "demo_quotes"
+        raw_spider_name = self.spider_input.get().strip()
+        spider_name = raw_spider_name.lower().replace(" ", "_") if raw_spider_name else "reddit"
         target_url = self.url_input.get().strip()
+
         concurrency = self.concurrency_spin.get()
         max_items = int(self.max_items_spin.get() or 0)
         max_depth = int(self.max_depth_spin.get() or 0)
@@ -570,11 +572,12 @@ class AtoZScrapyWindowsApp:
             cmd.extend(["-s", f"RETRY_TIMES={self.retry_spin.get()}"])
             cmd.extend(["-s", f"ROBOTSTXT_OBEY={'True' if self.robots_var.get() else 'False'}"])
             cmd.extend(["-s", f"COOKIES_ENABLED={'True' if self.cookies_var.get() else 'False'}"])
-            if self.ua_input.get().strip():
-                cmd.extend(["-s", f"USER_AGENT={self.ua_input.get().strip()}"])
+            if target_url:
+                cmd.extend(["-a", f"target_url={target_url}"])
 
             # Append target spider_name as final argument
             cmd.append(spider_name)
+
 
 
             env = os.environ.copy()
