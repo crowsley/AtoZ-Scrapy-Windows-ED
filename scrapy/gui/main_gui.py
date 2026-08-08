@@ -1,11 +1,11 @@
 """
-AtoZ Scrapy Windows ED 0.0.1 - Main Windows Desktop GUI Application
+AtoZ Scrapy Windows ED 0.0.2 - Main Windows Desktop GUI Application
 
 Provides a native Windows desktop app for controlling spiders, configuring
 proxies and Playwright, streaming live scraped data in real-time, scraping limits controls,
 expanded TXT/CSV/PDF/JSON exporters, full Scrapy Core features (AutoThrottle,
 HTTPCache, Retries, User-Agent, Cookies, Robots.txt), Universal Multi-Site Scraper,
-Keyword & Phrase Filtering, and AI Spider Generator.
+Keyword & Phrase Filtering, AI Spider Generator, and GitHub Release Auto-Updater.
 """
 
 import sys
@@ -17,17 +17,18 @@ import time
 import tempfile
 import threading
 import subprocess
+import webbrowser
 from datetime import datetime
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, scrolledtext
 from typing import Optional
 
 try:
-    from scrapy.gui.version import APP_NAME, APP_VERSION, FULL_APP_TITLE
+    from scrapy.gui.version import APP_NAME, APP_VERSION, FULL_APP_TITLE, GITHUB_REPO
     from scrapy.gui.updater import GitHubUpdater
     from scrapy.gui.spider_generator import save_generated_spider
 except (ImportError, ValueError):
-    from .version import APP_NAME, APP_VERSION, FULL_APP_TITLE
+    from .version import APP_NAME, APP_VERSION, FULL_APP_TITLE, GITHUB_REPO
     from .updater import GitHubUpdater
     from .spider_generator import save_generated_spider
 
@@ -178,6 +179,11 @@ class AtoZScrapyWindowsApp:
         self.tab_updater = ttk.Frame(self.notebook, padding=15)
         self.notebook.add(self.tab_updater, text="  🔄 GitHub Updater  ")
         self._build_updater_tab()
+
+        # Tab 8: About & MIT License
+        self.tab_about = ttk.Frame(self.notebook, padding=15)
+        self.notebook.add(self.tab_about, text="  ℹ️ About & License  ")
+        self._build_about_tab()
 
     def _build_launcher_tab(self):
         frame = self.tab_launcher
@@ -336,7 +342,7 @@ class AtoZScrapyWindowsApp:
             return
 
         try:
-            target_dir = r"c:\Users\saghi\Downloads\Scrapy\scrapy\spiders"
+            target_dir = os.path.join(os.getcwd(), "scrapy", "spiders")
             filepath = save_generated_spider(s_name, s_url, target_dir)
             self.gen_log.insert("end", f"✅ Successfully generated spider '{s_name}'!\n")
             self.gen_log.insert("end", f"📄 Saved to: {filepath}\n")
@@ -417,7 +423,7 @@ class AtoZScrapyWindowsApp:
 
         ttk.Label(ua_frame, text="Custom User-Agent:").grid(row=1, column=0, sticky="w", padx=5, pady=4)
         self.ua_input = tk.Entry(ua_frame, width=65, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 9))
-        self.ua_input.insert(0, "AtoZ-Scrapy-Windows-ED/0.0.1 (+https://github.com)")
+        self.ua_input.insert(0, "AtoZ-Scrapy-Windows-ED/0.0.2 (+https://github.com/crowsley/AtoZ-Scrapy-Windows-ED)")
         self.ua_input.grid(row=1, column=1, columnspan=3, sticky="w", padx=5, pady=4)
 
     def _get_downloads_folder(self) -> str:
@@ -588,7 +594,7 @@ class AtoZScrapyWindowsApp:
 
         ttk.Label(repo_frame, text="GitHub Repository Owner/Repo:").pack(side="left", padx=5)
         self.repo_entry = tk.Entry(repo_frame, width=40, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 10))
-        self.repo_entry.insert(0, "crowsley/AtoZ-Scrapy-Windows-ED")
+        self.repo_entry.insert(0, GITHUB_REPO)
         self.repo_entry.pack(side="left", padx=5)
 
         btn_frame = ttk.Frame(frame)
@@ -609,12 +615,53 @@ class AtoZScrapyWindowsApp:
         self.btn_apply_update.config(state="disabled")
 
     def _open_github_link(self):
-        import webbrowser
-        repo_spec = self.repo_entry.get().strip() or "crowsley/AtoZ-Scrapy-Windows-ED"
+        repo_spec = self.repo_entry.get().strip() or GITHUB_REPO
         url = f"https://github.com/{repo_spec}"
         webbrowser.open(url)
 
+    def _build_about_tab(self):
+        frame = self.tab_about
 
+        ttk.Label(frame, text=f"ℹ️ About {FULL_APP_TITLE}", style="Header.TLabel").pack(anchor="w", pady=5)
+
+        meta_frame = ttk.Frame(frame, padding=10)
+        meta_frame.pack(fill="x", pady=5)
+
+        ttk.Label(meta_frame, text=f"Product: {APP_NAME}", font=("Segoe UI", 10, "bold")).pack(anchor="w")
+        ttk.Label(meta_frame, text=f"Current Installed Version: v{APP_VERSION} (Windows ED)").pack(anchor="w")
+        ttk.Label(meta_frame, text=f"Author: crowsley").pack(anchor="w")
+        ttk.Label(meta_frame, text=f"GitHub Repository: https://github.com/crowsley/AtoZ-Scrapy-Windows-ED").pack(anchor="w")
+        ttk.Label(meta_frame, text=f"License: MIT License (Free & Open Source)").pack(anchor="w")
+
+        btn_repo = ttk.Button(meta_frame, text="🌐 Open GitHub Project Page", command=lambda: webbrowser.open("https://github.com/crowsley/AtoZ-Scrapy-Windows-ED"))
+        btn_repo.pack(anchor="w", pady=8)
+
+        ttk.Label(frame, text="MIT License Terms & Open Source Agreement:", font=("Segoe UI", 10, "bold")).pack(anchor="w", pady=(10, 5))
+
+        license_text = scrolledtext.ScrolledText(frame, height=12, bg="#11111b", fg="#cdd6f4", font=("Consolas", 9), insertbackground="#ffffff")
+        license_text.pack(fill="both", expand=True, pady=5)
+        
+        mit_license_body = (
+            "MIT License\n\n"
+            "Copyright (c) 2026 crowsley\n"
+            "Product: AtoZ Scrapy Windows ED (Next-Generation Web Scraper Framework)\n\n"
+            "Permission is hereby granted, free of charge, to any person obtaining a copy\n"
+            "of this software and associated documentation files (the \"Software\"), to deal\n"
+            "in the Software without restriction, including without limitation the rights\n"
+            "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n"
+            "copies of the Software, and to permit persons to whom the Software is\n"
+            "furnished to do so, subject to the following conditions:\n\n"
+            "The above copyright notice and this permission notice shall be included in all\n"
+            "copies or substantial portions of the Software.\n\n"
+            "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
+            "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n"
+            "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n"
+            "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n"
+            "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n"
+            "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n"
+            "SOFTWARE.\n"
+        )
+        license_text.insert("1.0", mit_license_body)
 
     def _start_spider(self):
         raw_spider_name = self.spider_input.get().strip()
@@ -704,7 +751,7 @@ class AtoZScrapyWindowsApp:
                     text=True,
                     bufsize=1,
                     env=env,
-                    cwd=r"C:\Users\saghi\Downloads\Scrapy"
+                    cwd=os.getcwd()
                 )
 
                 for line in iter(self.current_process.stdout.readline, ''):
@@ -748,12 +795,12 @@ class AtoZScrapyWindowsApp:
                 self.update_log.insert("end", f"[INFO] {info['message']}\n")
             else:
                 self.update_log.insert("end", f"[STATUS] Latest Release Found: {info.get('release_name')}\n")
-                self.update_log.insert("end", f"[STATUS] Current Version: {info.get('current_version')}\n")
-                self.update_log.insert("end", f"[STATUS] Latest Tag: {info.get('latest_version')}\n\n")
+                self.update_log.insert("end", f"[STATUS] Current Installed Version: {info.get('current_version')}\n")
+                self.update_log.insert("end", f"[STATUS] Latest Available Tag: {info.get('latest_version')}\n\n")
                 self.update_log.insert("end", f"Release Notes:\n{info.get('release_notes')}\n")
 
                 if has_update:
-                    self.update_log.insert("end", "\n✨ NEW UPDATE AVAILABLE! Click 'Download & Install' below.\n")
+                    self.update_log.insert("end", "\n✨ NEW UPDATE AVAILABLE! Click 'Download & Install Latest Update' below.\n")
                     self.latest_zip_url = info.get("zip_url")
                     self.root.after(0, lambda: self.btn_apply_update.config(state="normal"))
                 else:

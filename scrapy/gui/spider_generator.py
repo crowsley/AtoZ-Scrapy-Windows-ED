@@ -5,6 +5,7 @@ Automatically generates complete Scrapy Spider code from a target URL and select
 """
 
 import os
+from typing import Optional
 
 
 def generate_spider_code(spider_name: str, start_url: str, allowed_domain: str = "") -> str:
@@ -42,7 +43,10 @@ class {spider_name.capitalize()}Spider(scrapy.Spider):
     return code
 
 
-def save_generated_spider(spider_name: str, start_url: str, target_dir: str = r"c:\Users\saghi\Downloads\Scrapy\scrapy\spiders") -> str:
+def save_generated_spider(spider_name: str, start_url: str, target_dir: Optional[str] = None) -> str:
+    if not target_dir:
+        target_dir = os.path.join(os.getcwd(), "scrapy", "spiders")
+    os.makedirs(target_dir, exist_ok=True)
     code = generate_spider_code(spider_name, start_url)
     filepath = os.path.join(target_dir, f"{spider_name}_spider.py")
     with open(filepath, "w", encoding="utf-8") as f:

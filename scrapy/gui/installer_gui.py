@@ -117,8 +117,9 @@ class AtoZInstallerWizard:
             self.progress['value'] = 30
             self.lbl_status.config(text="Extracting binaries & dependencies...")
 
-            source_exe = r"C:\Users\saghi\Downloads\AtoZ-Scrapy-Windows-11-ED.exe"
+            source_exe = os.path.join(os.path.expanduser("~"), "Downloads", "AtoZ-Scrapy-Windows-11-ED.exe")
             dest_exe = os.path.join(target_dir, "AtoZ-Scrapy-Windows-11-ED.exe")
+
 
             if os.path.exists(source_exe):
                 shutil.copy2(source_exe, dest_exe)
