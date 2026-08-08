@@ -2,7 +2,7 @@
 AtoZ Scrapy Windows ED 0.0.1 - Main Windows Desktop GUI Application
 
 Provides a native Windows desktop app for controlling spiders, configuring
-proxies and Playwright, streaming live scraped data, scraping limits controls,
+proxies and Playwright, streaming live scraped data in real-time, scraping limits controls,
 expanded TXT/CSV/PDF/JSON exporters, full Scrapy Core features (AutoThrottle,
 HTTPCache, Retries, User-Agent, Cookies, Robots.txt), and AI Scraper Insights.
 """
@@ -12,8 +12,11 @@ import os
 import json
 import csv
 import queue
+import time
+import tempfile
 import threading
 import subprocess
+from datetime import datetime
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, scrolledtext
 from typing import Optional
@@ -21,11 +24,9 @@ from typing import Optional
 try:
     from scrapy.gui.version import APP_NAME, APP_VERSION, FULL_APP_TITLE
     from scrapy.gui.updater import GitHubUpdater
-    from scrapy.pipelines.gui_pipeline import GUI_ITEM_QUEUE
 except (ImportError, ValueError):
     from .version import APP_NAME, APP_VERSION, FULL_APP_TITLE
     from .updater import GitHubUpdater
-    from scrapy.pipelines.gui_pipeline import GUI_ITEM_QUEUE
 
 
 class AtoZScrapyWindowsApp:
@@ -36,6 +37,8 @@ class AtoZScrapyWindowsApp:
         self.root.minsize(880, 600)
         self.item_count = 0
         self.scraped_items_list = []
+        self.ipc_file = ""
+        self.ipc_offset = 0
 
         # Style configuration
         self.style = ttk.Style()
@@ -78,7 +81,6 @@ class AtoZScrapyWindowsApp:
         )
         self.style.map("Treeview", background=[("selected", "#89b4fa")], foreground=[("selected", "#11111b")])
 
-
         self.updater = GitHubUpdater()
 
         # Build Layout
@@ -86,27 +88,36 @@ class AtoZScrapyWindowsApp:
         self._create_tabs()
         self._create_statusbar()
 
-        # Start background item queue polling
-        self._poll_item_queue()
+        # Start real-time IPC file stream tailer
+        self._poll_ipc_file()
 
-    def _poll_item_queue(self):
-        try:
-            while not GUI_ITEM_QUEUE.empty():
-                item = GUI_ITEM_QUEUE.get_nowait()
-                self.item_count += 1
-                raw = item.get("raw_item", {})
-                self.scraped_items_list.append(raw)
+    def _poll_ipc_file(self):
+        if self.ipc_file and os.path.exists(self.ipc_file):
+            try:
+                with open(self.ipc_file, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+                    while self.ipc_offset < len(lines):
+                        line = lines[self.ipc_offset].strip()
+                        self.ipc_offset += 1
+                        if line:
+                            raw_item = json.loads(line)
+                            self.item_count += 1
+                            self.scraped_items_list.append(raw_item)
 
-                self.data_table.insert(
-                    "",
-                    "end",
-                    values=(self.item_count, item.get("url"), item.get("content"), item.get("timestamp"))
-                )
-                self.status_var.set(f"Running | Scraped Items: {self.item_count}")
-        except Exception:
-            pass
+                            title_url = str(raw_item.get("title") or raw_item.get("url") or raw_item.get("link") or "N/A")[:50]
+                            snippet = str(raw_item.get("text") or raw_item.get("author") or raw_item.get("content") or str(raw_item))[:90]
+                            timestamp = datetime.now().strftime("%H:%M:%S")
 
-        self.root.after(200, self._poll_item_queue)
+                            self.data_table.insert(
+                                "",
+                                "end",
+                                values=(self.item_count, title_url, snippet, timestamp)
+                            )
+                            self.status_var.set(f"Running | Live Scraped Items: {self.item_count}")
+            except Exception:
+                pass
+
+        self.root.after(150, self._poll_ipc_file)
 
     def _create_header(self):
         header_frame = ttk.Frame(self.root, padding=(15, 10))
@@ -311,7 +322,6 @@ class AtoZScrapyWindowsApp:
 
         ttk.Label(ua_frame, text="Custom User-Agent:").grid(row=1, column=0, sticky="w", padx=5, pady=4)
         self.ua_input = tk.Entry(ua_frame, width=65, bg="#181825", fg="#ffffff", insertbackground="#ffffff", font=("Segoe UI", 9))
-
         self.ua_input.insert(0, "AtoZ-Scrapy-Windows-ED/0.0.1 (+https://github.com)")
         self.ua_input.grid(row=1, column=1, columnspan=3, sticky="w", padx=5, pady=4)
 
@@ -505,6 +515,21 @@ class AtoZScrapyWindowsApp:
         max_items = int(self.max_items_spin.get() or 0)
         max_depth = int(self.max_depth_spin.get() or 0)
 
+        # Reset item lists and clear table
+        self.scraped_items_list = []
+        self.item_count = 0
+        self.ipc_offset = 0
+        for item in self.data_table.get_children():
+            self.data_table.delete(item)
+
+        # Prepare real-time IPC stream file
+        self.ipc_file = os.path.join(tempfile.gettempdir(), f"scrapy_stream_{os.getpid()}_{int(time.time())}.jsonl")
+        if os.path.exists(self.ipc_file):
+            try:
+                os.remove(self.ipc_file)
+            except Exception:
+                pass
+
         self.log_text.insert("end", f"[SYS] Launching spider '{spider_name}' targeting {target_url}...\n")
         self.log_text.insert("end", "[SYS] Windows IOCP Async Engine initialized.\n")
         self.log_text.insert("end", f"[ENGINE] Playwright dynamic rendering: {'ENABLED' if self.playwright_var.get() else 'DISABLED'}\n")
@@ -525,6 +550,9 @@ class AtoZScrapyWindowsApp:
 
         def run_proc():
             cmd = [sys.executable, "-m", "scrapy", "crawl", spider_name]
+
+            # Stream output items to IPC JSONLines file
+            cmd.extend(["-o", self.ipc_file, "-t", "jsonlines"])
 
             # Append settings overrides
             cmd.extend(["-s", f"CONCURRENT_REQUESTS={concurrency}"])
@@ -570,7 +598,7 @@ class AtoZScrapyWindowsApp:
                 self.root.after(0, lambda: (
                     self.log_text.insert("end", f"[SYS] Spider '{spider_name}' run finished cleanly.\n"),
                     self.log_text.see("end"),
-                    self.status_var.set("Engine idle.")
+                    self.status_var.set(f"Engine idle. Total Scraped Items: {self.item_count}")
                 ))
             except Exception as e:
                 self.root.after(0, lambda: self.log_text.insert("end", f"[ERROR] Failed to run spider: {e}\n"))
